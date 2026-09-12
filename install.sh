@@ -10,6 +10,7 @@ set -euo pipefail
 REPO="Lai-es/bash-styling"
 INSTALL_DIR="$HOME/.local/share/bash-styling"
 FUNCS_FILE="$INSTALL_DIR/functions.sh"
+BOX_FILE="$INSTALL_DIR/success-box"
 BASHRC="$HOME/.bashrc"
 
 BACKUP_MSG="Making backup of $BASHRC"
@@ -45,16 +46,19 @@ remove_block() {
 }
 
 do_install() {
-  local version repo_raw funcs_url
+  local version repo_raw funcs_url box_url
   version="$(get_latest_version)"
   repo_raw="https://raw.githubusercontent.com/${REPO}/${version}"
   funcs_url="${repo_raw}/functions.sh"
+  box_url="${repo_raw}/boxes-config"
 
   mkdir -p "$INSTALL_DIR"
   if command -v curl >/dev/null 2>&1; then
     curl -fsSL "$funcs_url" -o "$FUNCS_FILE"
+    curl -fsSL "$box_url" -o "$BOX_FILE"
   elif command -v wget >/dev/null 2>&1; then
     wget -qO "$FUNCS_FILE" "$funcs_url"
+    wget -qO "$BOX_FILE" "$box_url"
   else
     err "Neither curl nor wget is available. Please install one and retry."
   fi

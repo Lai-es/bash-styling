@@ -8,7 +8,7 @@ RESET_COLOR='\033[0m'
 SCRIPTNAME=$(basename "$0")
 
 detect_installed_packages() {
-    local package command_name variable_name
+    local package command_name variable_name missing_packages=""
 
     for package in lolcat figlet boxes fortune cowsay eza tput; do
         command_name="$package"
@@ -18,15 +18,22 @@ detect_installed_packages() {
             printf -v "$variable_name" '%s' true
         else
             printf -v "$variable_name" '%s' false
+            missing_packages+=" $package"
         fi
 
         printf '%-8s %s\n' "$package" "${!variable_name}"
     done
+
+    if [[ -n "$missing_packages" ]]; then
+        log_banner "Unavailable:$missing_packages | Install missing packages and reload your shell"
+    else
+        log_banner "All required packages are available"
+    fi
 }
 
 success_banner() {
     if [[ ${BOXES_AVAILABLE:-false} == true ]]; then
-        echo "$*" | boxes_design -d stone
+        echo "$*" | boxes_design -d success
     else
         printf '%b\n' "${GREEN}$(banner_border "$*")${RESET_COLOR}"
         printf '%b\n' "${GREEN}$(banner_mid    "$*")${RESET_COLOR}"
@@ -44,6 +51,16 @@ fail_banner() {
     fi
 }
 
+log_banner() {
+    if [[ ${BOXES_AVAILABLE:-false} == true ]]; then
+        echo "$*" | boxes_design -d success
+    else
+        banner_border "$*"
+        banner_mid "$*"
+        banner_border "$*"
+    fi
+}
+
 banner_border() {
     banner_mid "$*" | sed 's/./*/g'
 }
@@ -58,7 +75,7 @@ center_text() {
 }
 
 boxes_design() {
-    boxes -a hcvcjc "$@"
+    boxes -a hcvcjc -f "$HOME/.local/share/bash-styling/success-box" "$@"
 }
 
 # Center a box created with `boxes`.
@@ -73,6 +90,9 @@ center_box() {
     center_text "${line}"  # our center command from earlier.
   done <<< "${data}"
 }
+
+# On each startup, check the required packages
+detect_installed_packages
 
 # aliases
 alias ..='cd ..'

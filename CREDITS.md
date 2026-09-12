@@ -23,7 +23,7 @@ not a branch), **License**, and **Status** (`Copied verbatim`, `Adapted`, or
 
 ## `functions.sh`
 
-### `success_banner(), fail_banner(), banner_border(), banner_mid()`
+### `success_banner(), fail_banner(), log_banner(), banner_border(), banner_mid()`
 - **Source:** https://unix.stackexchange.com/a/250094, adapted as https://github.com/TimothyJones/timbash/blob/39cdf77ae4f1981527a494d5a02be62c40df900e/lib/lib-logging.sh#L33-L58
 - **License:** -
 - **Status:** Adapted — added a `BOXES_AVAILABLE` branch that pipes the

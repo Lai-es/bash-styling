@@ -1,0 +1,45 @@
+parent :global:
+
+BOX success
+
+author   "Elias Riedling <@Lai-es>"
+designer "Thomas Jensen"
+tags     ("box", "color", "simple", "unicode")
+
+sample
+    [32m▄▄[0m[30;42m SUCCESS [0;32m▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄[0m
+    [32m█[0m                                               [32m█[0m
+    [32m█[0m  1000 day streak on duolingo!                 [32m█[0m
+    [32m█[0m  Get a life...                                [32m█[0m
+    [32m█[0m                                               [32m█[0m
+    [32m▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀[0m
+ends
+
+# Monochrome sample:
+# ▄▄ SUCCESS ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+# █                                               █
+# █  1000 day streak on duolingo!                 █
+# █  Get a life...                                █
+# █                                               █
+# ▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀
+
+shapes {
+    nw  ("[32m▄[0m")                           
+    nnw ("[32m▄[0m[30;42m SUCCESS [0m")      
+    n   ("[32m▄[0m")                           
+    ne  ("[32m▄[0m")                           
+    w   ("[32m█[0m")                           
+    e   ("[32m█[0m")                           
+    sw  ("[32m▀[0m")                           
+    s   ("[32m▀[0m")                           
+    se  ("[32m▀[0m")                           
+    }
+
+elastic (n, s, e, w)
+
+padding {
+    horizontal 2
+    vertical 1
+}
+
+END success
