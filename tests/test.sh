@@ -158,8 +158,27 @@ fi
 section 'Library startup and package detection'
 LIB_OUTPUT="$TMP_DIR/library.out"
 HOME="$MOCK_HOME" PATH="$MOCK_BIN:$PATH" bash -c 'source "$1"' bash "$LIBRARY" > "$LIB_OUTPUT" 2>&1
-assert_contains 'startup runs package detection' 'lolcat   true' "$LIB_OUTPUT"
-assert_contains 'startup reports all required packages' 'All required packages are available' "$LIB_OUTPUT"
+if ! grep -qE 'Missing packages:|All required packages are available|lolcat   true' "$LIB_OUTPUT"; then
+    pass 'startup is silent when all required packages are available'
+else
+    fail 'startup is silent when all required packages are available'
+fi
+
+MISSING_OUTPUT="$TMP_DIR/missing-packages.out"
+HOME="$MOCK_HOME" PATH="$MOCK_BIN:$PATH" bash -c '
+    source "$1" >/dev/null 2>&1
+    command() {
+        [[ "$2" == lolcat || "$2" == boxes || "$2" == tput ]]
+    }
+    log_banner() { printf "banner:%s\\n" "$*"; }
+    detect_installed_packages
+' bash "$LIBRARY" > "$MISSING_OUTPUT"
+assert_contains 'missing package banner is displayed' 'banner:Missing packages: figlet fortune cowsay eza' "$MISSING_OUTPUT"
+if ! grep -qE 'lolcat|boxes|tput' "$MISSING_OUTPUT"; then
+    pass 'missing package banner excludes available packages'
+else
+    fail 'missing package banner excludes available packages'
+fi
 
 section 'Banner functions'
 BANNER_OUTPUT="$TMP_DIR/banners.out"
@@ -186,7 +205,7 @@ HOME="$MOCK_HOME" PATH="$MOCK_BIN:$PATH" bash -c '
 ' bash "$LIBRARY" > "$BOX_OUTPUT"
 assert_contains 'success banner passes success style' 'style=success input=success-message' "$BOX_OUTPUT"
 assert_contains 'failure banner passes warning style' 'style=warning input=failure-message' "$BOX_OUTPUT"
-assert_contains 'log banner uses boxes path' 'style=success input=log-message' "$BOX_OUTPUT"
+assert_contains 'log banner uses boxes path' 'style=info input=log-message' "$BOX_OUTPUT"
 
 section 'Timer functions'
 TIMER_OUTPUT="$TMP_DIR/timers.out"
@@ -216,7 +235,7 @@ HOME="$MOCK_HOME" PATH="$MOCK_BIN:$PATH" bash -c '
     print_script_time
     printf "\\n"
 ' bash "$LIBRARY" > "$SCRIPT_TIMER_OUTPUT"
-if grep -Eq '^[0-9]+s$|^[0-9]+m [0-9]+s$|^[0-9]+h [0-9]+m [0-9]+s$' "$SCRIPT_TIMER_OUTPUT"; then
+if grep -Eq '^[[:space:]]*Script bash took [0-9]+s$|^[[:space:]]*Script bash took [0-9]+m [0-9]+s$|^[[:space:]]*Script bash took [0-9]+h [0-9]+m [0-9]+s$' "$SCRIPT_TIMER_OUTPUT"; then
     pass 'script timer prints formatted elapsed time'
 else
     fail 'script timer prints formatted elapsed time'

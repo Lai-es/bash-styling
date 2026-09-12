@@ -22,13 +22,10 @@ detect_installed_packages() {
             missing_packages+=" $package"
         fi
 
-        printf '%-8s %s\n' "$package" "${!variable_name}"
     done
 
     if [[ -n "$missing_packages" ]]; then
-        log_banner "Unavailable:$missing_packages | Install missing packages and reload your shell"
-    else
-        log_banner "All required packages are available"
+        log_banner "Missing packages:${missing_packages} | Install them and reload your shell"
     fi
 }
 
@@ -56,7 +53,7 @@ fail_banner() {
 
 log_banner() {
     if [[ ${BOXES_AVAILABLE:-false} == true ]]; then
-        echo "$*" | boxes_design -d success
+        echo "$*" | boxes_design -d info
     else
         banner_border "$*"
         banner_mid "$*"
@@ -132,7 +129,7 @@ step_start() {
 }
 
 print_script_time() { #wrapper for time since script start
-    print_elapsed_time "$SCRIPT_START"
+    center_text "$(printf 'Script %s took %s' "$SCRIPTNAME" "$(print_elapsed_time "$SCRIPT_START")")"
 }
 
 print_step_time() { #wrapper for time since last step
@@ -141,9 +138,8 @@ print_step_time() { #wrapper for time since last step
         return
     fi
 
-    printf "[Step %d took " "$(( STEP_COUNT - 1 ))"
-    printf '%s' "$PREVIOUS_STEP_DURATION"
-    printf '\n'
+    printf "[Step %d took %s]\n" "$(( STEP_COUNT - 1 ))" "$PREVIOUS_STEP_DURATION"
+    printf "[Step %d]" "$STEP_COUNT"
 }
 
 # ========================== Aliases ================================
