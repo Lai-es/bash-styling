@@ -49,8 +49,8 @@ do_install() {
   local version repo_raw funcs_url box_url
   version="$(get_latest_version)"
   repo_raw="https://raw.githubusercontent.com/${REPO}/${version}"
-  funcs_url="${repo_raw}/functions.sh"
-  box_url="${repo_raw}/boxes-config"
+  funcs_url="${repo_raw}/lib/functions.sh"
+  box_url="${repo_raw}/lib/success-box"
 
   mkdir -p "$INSTALL_DIR"
   if command -v curl >/dev/null 2>&1; then
