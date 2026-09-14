@@ -1,7 +1,7 @@
 # bash-styling
 
 Shell startup styling, banners, package checks, aliases, and simple timing
-helpers for Bash.
+helpers for Bash. External packages are used and have smart defaults in their absence.
 
 ## Installation
 
@@ -36,7 +36,7 @@ It supports either `curl` or `wget` for downloads.
 
 The startup package check looks for these commands:
 
-`lolcat`, `figlet`, `boxes`, `fortune`, `cowsay`, `eza`, and `tput`.
+`lolcat`, `figlet`, `boxes`, `fortune`, `cowsay`, `eza`, `zoxide` and `tput`.
 
 Missing commands are reported when Bash starts, along with a hint to install
 the unavailable packages.
@@ -46,6 +46,14 @@ To skip the startup package check, source the library with `-q` or `--quiet`:
 `source "$HOME/.local/share/bash-styling/functions.sh" --quiet`
 
 ## Functions
+
+### Startup behavior
+
+On startup, the library checks and offers to install
+missing packages when a supported package manager is available. When `fortune`,
+`cowsay`, and `lolcat` are installed, it prints a random fortune in a random
+cow's speech bubble with colored message text. Otherwise, it falls back to a
+plain `fortune` and `cowsay` pipeline.
 
 ### Banners
 

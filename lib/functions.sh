@@ -174,14 +174,55 @@ alias clear="clear; figlet Let\'s go! | lolcat"
 alias cl='clear; echo; ls'
 alias lsa='ls -a'
 
+# randomcow-fortune in a random cow's speech bubble.  Cowsay must receive
+# plain text; ANSI color codes would otherwise be counted in its line width.
+fortune_cow_colored() {
+    local cow output bottom=-1 colored line left right
+    local -a lines colored_lines
+
+    cow="$(cowsay -l | sed '1d' | sort -R | head -1)"
+    output="$(fortune -nsa | cowsay -n -f "$cow")"
+
+  mapfile -t lines <<< "$output"
+
+  for i in "${!lines[@]}"; do
+    if [[ "${lines[$i]}" =~ ^[[:space:]]*-+[[:space:]]*$ ]]; then
+      bottom=$i
+      break
+    fi
+  done
+
+    (( bottom > 1 )) || return 1
+
+    # Color the message as one stream so lolcat does not restart its palette per line.
+    mapfile -t colored_lines < <(
+        for ((i = 1; i < bottom; i++)); do
+            line=${lines[$i]}
+            printf '%s\n' "${line:2:${#line}-4}"
+        done | lolcat -f
+    )
+
+    printf '%s\n' "${lines[0]}"
+    for ((i = 1; i < bottom; i++)); do
+        line=${lines[$i]}
+        left=${line:0:2}
+        right=${line: -2}
+        colored=${colored_lines[$((i - 1))]}
+        printf '%s%s\033[0m%s\n' "$left" "$colored" "$right"
+    done
+  printf '%s\n' "${lines[$bottom]}"
+  for ((i = bottom + 1; i < ${#lines[@]}; i++)); do
+    printf '%s\n' "${lines[$i]}"
+  done
+}
+
 # ========================= Shell startup ==========================
 
 # On each startup, check the required packages
 detect_installed_packages "$@"
 
-# randomcow-fortune on shell startup
 if [[ ${FORTUNE_AVAILABLE:-false} == true && ${COWSAY_AVAILABLE:-false} == true && ${LOLCAT_AVAILABLE:-false} == true ]]; then
-    fortune -nsa | cowsay -f `cowsay -l | sort -R | head -1` -n | lolcat
+        fortune_cow_colored
 else
-    fortune -nsa | cowsay -f `cowsay -l | sort -R | head -1` -n
+        fortune -nsa | cowsay -f "$(cowsay -l | sort -R | head -1)" -n
 fi
