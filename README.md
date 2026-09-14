@@ -41,6 +41,10 @@ The startup package check looks for these commands:
 Missing commands are reported when Bash starts, along with a hint to install
 the unavailable packages.
 
+To skip the startup package check, source the library with `-q` or `--quiet`:
+
+`source "$HOME/.local/share/bash-styling/functions.sh" --quiet`
+
 ## Functions
 
 ### Banners

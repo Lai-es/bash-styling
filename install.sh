@@ -74,7 +74,8 @@ do_install() {
   {
     echo ""
     echo "$MARKER_START"
-    echo "# GitHub-repo: $REPO version: $version"
+    echo "# GitHub-repo: $REPO $version"
+    echo "# To skip the startup package check, source the library with -q or --quiet"
     echo "source \"$FUNCS_FILE\""
     echo "$MARKER_END"
   } >> "$BASHRC"

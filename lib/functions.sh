@@ -9,9 +9,13 @@ SCRIPTNAME=$(basename "$0")
 
 # find available and not available packages
 detect_installed_packages() {
-    local package command_name variable_name missing_packages=""
+    local package command_name variable_name missing_packages="" package_list answer
 
-    for package in lolcat figlet boxes fortune cowsay eza tput; do
+    if [[ ${1:-} == '-q' || ${1:-} == '--quiet' ]]; then
+        return 0
+    fi
+
+    for package in lolcat figlet boxes fortune cowsay eza tput zoxide; do
         command_name="$package"
         variable_name="${package^^}_AVAILABLE"
 
@@ -19,13 +23,31 @@ detect_installed_packages() {
             printf -v "$variable_name" '%s' true
         else
             printf -v "$variable_name" '%s' false
-            missing_packages+=" $package"
+            missing_packages+=" $package,"
         fi
 
     done
 
     if [[ -n "$missing_packages" ]]; then
         log_banner "Missing packages:${missing_packages} | Install them and reload your shell"
+        read -r -p 'Would you like to install the missing packages? [y/N] ' answer
+        if [[ ! "$answer" =~ ^[Yy]([Ee][Ss])?$ ]]; then
+            return 0
+        fi
+
+        package_list="${missing_packages%,}"
+        package_list="${package_list//, / }"
+        if command -v apt-get >/dev/null 2>&1; then
+            sudo apt-get update && sudo apt-get install -y $package_list
+        elif command -v dnf >/dev/null 2>&1; then
+            sudo dnf install -y $package_list
+        elif command -v pacman >/dev/null 2>&1; then
+            sudo pacman -S --needed --noconfirm $package_list
+        elif command -v brew >/dev/null 2>&1; then
+            brew install $package_list
+        else
+            printf 'No supported package manager found.\n' >&2
+        fi
     fi
 }
 
@@ -155,7 +177,11 @@ alias lsa='ls -a'
 # ========================= Shell startup ==========================
 
 # On each startup, check the required packages
-detect_installed_packages
+detect_installed_packages "$@"
 
 # randomcow-fortune on shell startup
-fortune -nsa | cowsay -f `cowsay -l | sort -R | head -1` -n | lolcat
+if [[ ${FORTUNE_AVAILABLE:-false} == true && ${COWSAY_AVAILABLE:-false} == true && ${LOLCAT_AVAILABLE:-false} == true ]]; then
+    fortune -nsa | cowsay -f `cowsay -l | sort -R | head -1` -n | lolcat
+else
+    fortune -nsa | cowsay -f `cowsay -l | sort -R | head -1` -n
+fi

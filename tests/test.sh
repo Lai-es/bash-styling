@@ -172,12 +172,36 @@ HOME="$MOCK_HOME" PATH="$MOCK_BIN:$PATH" bash -c '
     }
     log_banner() { printf "banner:%s\\n" "$*"; }
     detect_installed_packages
-' bash "$LIBRARY" > "$MISSING_OUTPUT"
-assert_contains 'missing package banner is displayed' 'banner:Missing packages: figlet fortune cowsay eza' "$MISSING_OUTPUT"
+' bash "$LIBRARY" <<< n > "$MISSING_OUTPUT"
+assert_contains 'missing package banner is displayed' 'banner:Missing packages: figlet, fortune, cowsay, eza,' "$MISSING_OUTPUT"
 if ! grep -qE 'lolcat|boxes|tput' "$MISSING_OUTPUT"; then
     pass 'missing package banner excludes available packages'
 else
     fail 'missing package banner excludes available packages'
+fi
+
+QUIET_OUTPUT="$TMP_DIR/quiet-package-check.out"
+HOME="$MOCK_HOME" PATH="$MOCK_BIN:$PATH" bash -c '
+    source "$1" --quiet
+    command() { return 1; }
+    log_banner() { printf "banner:%s\\n" "$*"; }
+' bash "$LIBRARY" > "$QUIET_OUTPUT"
+if [[ ! -s "$QUIET_OUTPUT" ]]; then
+    pass 'quiet startup skips package detection and output'
+else
+    fail 'quiet startup skips package detection and output'
+fi
+
+HOME="$MOCK_HOME" PATH="$MOCK_BIN:$PATH" bash -c '
+    source "$1" >/dev/null 2>&1
+    command() { return 1; }
+    log_banner() { printf "banner:%s\\n" "$*"; }
+    detect_installed_packages --quiet
+' bash "$LIBRARY" > "$QUIET_OUTPUT"
+if [[ ! -s "$QUIET_OUTPUT" ]]; then
+    pass 'quiet package check skips detection and output'
+else
+    fail 'quiet package check skips detection and output'
 fi
 
 section 'Banner functions'
