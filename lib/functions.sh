@@ -7,6 +7,55 @@ RESET_COLOR='\033[0m'
 
 SCRIPTNAME=$(basename "$0")
 
+# =========================== Update packages ======================================
+
+BASH_STYLING_REPO="${BASH_STYLING_REPO:-Lai-es/bash-styling}"
+BASH_STYLING_INSTALL_DIR="${BASH_STYLING_INSTALL_DIR:-$HOME/.local/share/bash-styling}"
+BASH_STYLING_VERSION_FILE="$BASH_STYLING_INSTALL_DIR/VERSION"
+BASH_STYLING_STARTUP_COUNT_FILE="$BASH_STYLING_INSTALL_DIR/startup-count"
+
+# pull latest github repo version
+get_latest_version() {
+    local url final_url version
+    url="https://github.com/${BASH_STYLING_REPO}/releases/latest"
+
+    if command -v curl >/dev/null 2>&1; then
+        final_url="$(curl -sSfIL -o /dev/null -w '%{url_effective}' "$url" 2>/dev/null || true)"
+    elif command -v wget >/dev/null 2>&1; then
+        final_url="$(wget --max-redirect=0 --server-response -O /dev/null "$url" 2>&1 | grep -i 'location:' | head -1 || true)"
+    else
+        return 1
+    fi
+
+    version="$(printf '%s' "$final_url" | sed 's|.*/||' | cut -d' ' -f1 | tr -d '\r\n')"
+    [[ -n "$version" ]] && printf '%s\n' "$version"
+}
+
+# scan for updates on the github repo
+update_library() {
+    local startup_count current_version latest_version update_command
+
+    if [[ ${1:-} == '-q' || ${1:-} == '--quiet' ]]; then
+        return 0
+    fi
+
+    mkdir -p "$BASH_STYLING_INSTALL_DIR" 2>/dev/null || return 0
+    startup_count="$(cat "$BASH_STYLING_STARTUP_COUNT_FILE" 2>/dev/null || printf '0')"
+    [[ "$startup_count" =~ ^[0-9]+$ ]] || startup_count=0
+    startup_count=$((startup_count + 1))
+    printf '%s\n' "$startup_count" > "$BASH_STYLING_STARTUP_COUNT_FILE" || return 0
+    (( startup_count % 10 == 0 )) || return 0
+
+    current_version="$(cat "$BASH_STYLING_VERSION_FILE" 2>/dev/null || true)"
+    [[ -n "$current_version" ]] || return 0
+    latest_version="$(get_latest_version 2>/dev/null || true)"
+    [[ -n "$latest_version" && "$latest_version" != "$current_version" ]] || return 0
+
+    update_command="curl -fsSL https://raw.githubusercontent.com/${BASH_STYLING_REPO}/main/install.sh | bash"
+    
+    log_banner "bash-styling update available: ${latest_version} (installed: ${current_version}). Run: ${update_command}\n"
+}
+
 # find available and not available packages
 detect_installed_packages() {
     local package command_name variable_name missing_packages="" package_list answer
@@ -55,33 +104,49 @@ detect_installed_packages() {
 
 success_banner() {
     if [[ ${BOXES_AVAILABLE:-false} == true ]]; then
-        echo "$*" | boxes_design -d success
+        printf '%s\n' "$*" | center_box | boxes_design -d success
     else
-        printf '%b\n' "${GREEN}$(banner_border "$*")${RESET_COLOR}"
-        printf '%b\n' "${GREEN}$(banner_mid    "$*")${RESET_COLOR}"
-        printf '%b\n' "${GREEN}$(banner_border "$*")${RESET_COLOR}"
+        printf '%b\n' "${GREEN}$(
+            {
+                banner_border "$*"
+                banner_mid "$*"
+                banner_border "$*"
+            } | center_box
+        )${RESET_COLOR}"
+    fi
+}
+
+warning_banner() {
+    if [[ ${BOXES_AVAILABLE:-false} == true ]]; then
+        printf '%s\n' "$*" | center_box | boxes_design -d warning
+    else
+        printf '%b\n' "${RED}$(
+            {
+                banner_border "$*"
+                banner_mid "$*"
+                banner_border "$*"
+            } | center_box
+        )${RESET_COLOR}"
     fi
 }
 
 fail_banner() {
-    if [[ ${BOXES_AVAILABLE:-false} == true ]]; then
-        echo "$*" | boxes_design -d warning
-    else
-        printf '%b\n' "${RED}$(banner_border "$*")${RESET_COLOR}"
-        printf '%b\n' "${RED}$(banner_mid    "$*")${RESET_COLOR}"
-        printf '%b\n' "${RED}$(banner_border "$*")${RESET_COLOR}"
-    fi
+    warning_banner "$@"
 }
 
 log_banner() {
     if [[ ${BOXES_AVAILABLE:-false} == true ]]; then
-        echo "$*" | boxes_design -d info
+        printf '%s\n' "$*" | center_box | boxes_design -d info
     else
-        banner_border "$*"
-        banner_mid "$*"
-        banner_border "$*"
+        {
+            banner_border "$*"
+            banner_mid "$*"
+            banner_border "$*"
+        } | center_box
     fi
 }
+
+# -------------------- banner helpers ------------------------------
 
 center_box() {
   local data="$(</dev/stdin)"  # Read from standard input
@@ -95,8 +160,6 @@ center_box() {
   done <<< "${data}"
 }
 
-# -------------------- banner helpers ------------------------------
-
 banner_border() {
     banner_mid "$*" | sed 's/./*/g'
 }
@@ -106,8 +169,9 @@ banner_mid() {
 }
 
 boxes_design() {
-    boxes -a hcvcjc -f "$HOME/.local/share/bash-styling/success-box" "$@"
+    boxes -a hcvcjc -f "$BASH_STYLING_INSTALL_DIR/success-box" "$@"
 }
+
 center_text() {
     COLS=$(tput cols)  # use the current width of the terminal.
     printf "%*s\n" "$(((${#1}+${COLS})/2))" "$1"
@@ -116,6 +180,7 @@ center_text() {
 # ========================== Timers =================================
 
 SCRIPT_START=$(date +%s)
+SCRIPT_STARTED=false
 STEP_START=$SCRIPT_START
 STEP_COUNT=0
 PREVIOUS_STEP_DURATION=""
@@ -138,6 +203,7 @@ print_elapsed_time() {
 
 script_start() {
     SCRIPT_START=$(date +%s)
+    SCRIPT_STARTED=true
 }
 
 step_start() {
@@ -151,7 +217,14 @@ step_start() {
 }
 
 print_script_time() { #wrapper for time since script start
-    center_text "$(printf 'Script %s took %s' "$SCRIPTNAME" "$(print_elapsed_time "$SCRIPT_START")")"
+    local script_time
+    script_time="$(printf 'Script %s took %s' "$SCRIPTNAME" "$(print_elapsed_time "$SCRIPT_START")")"
+
+    if [[ $SCRIPT_STARTED == true ]]; then
+        log_banner "$script_time"
+    else
+        warning_banner "Warning: script_start was not called; timing began when the library was loaded. $script_time"
+    fi
 }
 
 print_step_time() { #wrapper for time since last step
@@ -168,14 +241,21 @@ print_step_time() { #wrapper for time since last step
 
 alias ..='cd ..'
 alias ...='cd ../..'
-alias ls='eza -lh --no-quotes --group-directories-first'
+if [[ ${EZA_AVAILABLE:-false} == true]]; then
+    alias ls='eza -lh --no-quotes --group-directories-first'
+else
+    alias ls='ls -lh --group-directories-first --color=auto'
+fi
 alias sl='ls'
-alias clear="clear; figlet Let\'s go! | lolcat"
+if [[ ${FIGLET_AVAILABLE:-false} == true && ${LOLCAT_AVAILABLE:-false} == true ]]; then
+    alias clear="clear; figlet Let\'s go! | lolcat"
+fi
 alias cl='clear; echo; ls'
 alias lsa='ls -a'
+alias lc='wc -l'
 
-# randomcow-fortune in a random cow's speech bubble.  Cowsay must receive
-# plain text; ANSI color codes would otherwise be counted in its line width.
+# ============================ colored Cow-fortune ===================
+
 fortune_cow_colored() {
     local cow output bottom=-1 colored line left right
     local -a lines colored_lines
@@ -220,9 +300,12 @@ fortune_cow_colored() {
 
 # On each startup, check the required packages
 detect_installed_packages "$@"
+update_library "$@"
 
-if [[ ${FORTUNE_AVAILABLE:-false} == true && ${COWSAY_AVAILABLE:-false} == true && ${LOLCAT_AVAILABLE:-false} == true ]]; then
+if [[ ${FORTUNE_AVAILABLE:-false} == true && ${COWSAY_AVAILABLE:-false} == true ]]; then
+    if [[ ${LOLCAT_AVAILABLE:-false} == true ]]; then
         fortune_cow_colored
-else
+    else 
         fortune -nsa | cowsay -f "$(cowsay -l | sort -R | head -1)" -n
+    fi
 fi

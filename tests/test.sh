@@ -107,8 +107,9 @@ make_passthrough_command lolcat
 make_passthrough_command figlet
 make_passthrough_command boxes
 make_mock_command fortune 'printf test-fortune'
-make_passthrough_command cowsay
+make_mock_command cowsay 'printf test-cowsay'
 make_mock_command eza 'printf test-eza'
+make_passthrough_command zoxide
 cat > "$MOCK_BIN/tput" <<EOF
 #!/usr/bin/env bash
 printf 'tput %s\\n' "\$*" >> "$MOCK_LOG"
@@ -127,9 +128,11 @@ section 'Installer install'
 HOME="$MOCK_HOME" PATH="$MOCK_BIN:$PATH" bash "$INSTALLER" install > "$TMP_DIR/install.out"
 assert_file 'installer downloads functions library' "$MOCK_HOME/.local/share/bash-styling/functions.sh"
 assert_file 'installer downloads success box design' "$MOCK_HOME/.local/share/bash-styling/success-box"
+assert_file 'installer records the release version' "$MOCK_HOME/.local/share/bash-styling/VERSION"
 assert_contains 'installer adds managed source block' '# >>> bash-styling >>>' "$MOCK_HOME/.bashrc"
 assert_contains 'installer uses the release version' 'version: v-test' "$MOCK_HOME/.bashrc"
 assert_contains 'installer points to downloaded library' 'source "/' "$MOCK_HOME/.bashrc"
+assert_contains 'installer writes the downloaded release version' 'v-test' "$MOCK_HOME/.local/share/bash-styling/VERSION"
 
 section 'Installer update'
 HOME="$MOCK_HOME" PATH="$MOCK_BIN:$PATH" bash "$INSTALLER" install > "$TMP_DIR/update.out"
@@ -180,6 +183,22 @@ else
     fail 'missing package banner excludes available packages'
 fi
 
+section 'Library update check'
+UPDATE_OUTPUT="$TMP_DIR/update-check.out"
+printf '9\n' > "$MOCK_HOME/.local/share/bash-styling/startup-count"
+HOME="$MOCK_HOME" PATH="$MOCK_BIN:$PATH" bash -c 'source "$1" --quiet; update_library' bash "$LIBRARY" > "$UPDATE_OUTPUT"
+assert_contains 'update check prompts when a new release is found' 'bash-styling update available: v-test' "$UPDATE_OUTPUT"
+assert_contains 'update check shows the installer command' 'raw.githubusercontent.com/Lai-es/bash-styling/main/install.sh | bash' "$UPDATE_OUTPUT"
+
+UPDATE_OUTPUT="$TMP_DIR/update-check-silent.out"
+printf '10\n' > "$MOCK_HOME/.local/share/bash-styling/startup-count"
+HOME="$MOCK_HOME" PATH="$MOCK_BIN:$PATH" bash -c 'source "$1" --quiet; update_library' bash "$LIBRARY" > "$UPDATE_OUTPUT"
+if [[ ! -s "$UPDATE_OUTPUT" ]]; then
+    pass 'update check is silent between tenth startups'
+else
+    fail 'update check is silent between tenth startups'
+fi
+
 QUIET_OUTPUT="$TMP_DIR/quiet-package-check.out"
 HOME="$MOCK_HOME" PATH="$MOCK_BIN:$PATH" bash -c '
     source "$1" --quiet
@@ -221,15 +240,16 @@ section 'Banner helpers and boxes path'
 BOX_OUTPUT="$TMP_DIR/boxes.out"
 HOME="$MOCK_HOME" PATH="$MOCK_BIN:$PATH" bash -c '
     source "$1" >/dev/null 2>&1
+    center_box() { printf "centered=%s\\n" "$(cat)"; }
     boxes_design() { printf "style=%s input=%s\\n" "$2" "$(cat)"; }
     BOXES_AVAILABLE=true
     success_banner success-message
     fail_banner failure-message
     log_banner log-message
 ' bash "$LIBRARY" > "$BOX_OUTPUT"
-assert_contains 'success banner passes success style' 'style=success input=success-message' "$BOX_OUTPUT"
-assert_contains 'failure banner passes warning style' 'style=warning input=failure-message' "$BOX_OUTPUT"
-assert_contains 'log banner uses boxes path' 'style=info input=log-message' "$BOX_OUTPUT"
+assert_contains 'success banner passes centered text to success style' 'style=success input=centered=success-message' "$BOX_OUTPUT"
+assert_contains 'failure banner passes centered text to warning style' 'style=warning input=centered=failure-message' "$BOX_OUTPUT"
+assert_contains 'log banner passes centered text to info style' 'style=info input=centered=log-message' "$BOX_OUTPUT"
 
 section 'Timer functions'
 TIMER_OUTPUT="$TMP_DIR/timers.out"
@@ -253,6 +273,19 @@ assert_contains 'first step has no previous duration' '[Step 1]' "$TIMER_OUTPUT"
 assert_contains 'later step reports previous duration' '[Step 1 took 1m 5s' "$TIMER_OUTPUT"
 
 SCRIPT_TIMER_OUTPUT="$TMP_DIR/script-timer.out"
+HOME="$MOCK_HOME" PATH="$MOCK_BIN:$PATH" bash -c '
+    source "$1" >/dev/null 2>&1
+    warning_banner() { printf "warning:%s\\n" "$*"; }
+    log_banner() { printf "log:%s\\n" "$*"; }
+    print_script_time
+    script_start
+    print_script_time
+    printf "\\n"
+' bash "$LIBRARY" > "$SCRIPT_TIMER_OUTPUT"
+assert_contains 'script timer warns when script_start was not called' 'warning:Warning: script_start was not called;' "$SCRIPT_TIMER_OUTPUT"
+assert_contains 'script timer puts the warning before elapsed time' $'warning:Warning: script_start was not called; timing began when the library was loaded.\nScript bash took' "$SCRIPT_TIMER_OUTPUT"
+assert_contains 'script timer uses a log banner after script_start' 'log:Script bash took' "$SCRIPT_TIMER_OUTPUT"
+
 HOME="$MOCK_HOME" PATH="$MOCK_BIN:$PATH" bash -c '
     source "$1" >/dev/null 2>&1
     script_start
@@ -286,6 +319,18 @@ HOME="$MOCK_HOME" PATH="$MOCK_BIN:$PATH" bash -c '
 assert_contains 'navigation aliases are defined' "alias ..='cd ..'" "$ALIAS_OUTPUT"
 assert_contains 'ls alias is defined' "alias ls='eza -lh --no-quotes --group-directories-first'" "$ALIAS_OUTPUT"
 assert_contains 'clear alias is defined' "alias clear=" "$ALIAS_OUTPUT"
+
+FALLBACK_ALIAS_OUTPUT="$TMP_DIR/fallback-aliases.out"
+HOME="$MOCK_HOME" PATH="$MOCK_BIN:$PATH" bash -c '
+    command() {
+        [[ ${2:-} != eza && ${2:-} != figlet && ${2:-} != lolcat ]]
+    }
+    shopt -s expand_aliases
+    source "$1" --quiet >/dev/null 2>&1
+    alias ls clear
+' bash "$LIBRARY" > "$FALLBACK_ALIAS_OUTPUT"
+assert_contains 'ls alias falls back to the system ls command' "alias ls='ls -lh --group-directories-first'" "$FALLBACK_ALIAS_OUTPUT"
+assert_contains 'clear alias falls back to terminal escape codes' "alias clear='printf" "$FALLBACK_ALIAS_OUTPUT"
 
 CENTER_BOX_OUTPUT="$TMP_DIR/center-box.out"
 HOME="$MOCK_HOME" PATH="$MOCK_BIN:$PATH" bash -c '

@@ -11,6 +11,7 @@ REPO="Lai-es/bash-styling"
 INSTALL_DIR="$HOME/.local/share/bash-styling"
 FUNCS_FILE="$INSTALL_DIR/functions.sh"
 BOX_FILE="$INSTALL_DIR/success-box"
+VERSION_FILE="$INSTALL_DIR/VERSION"
 BASHRC="$HOME/.bashrc"
 
 BACKUP_MSG="Making backup of $BASHRC"
@@ -62,6 +63,7 @@ do_install() {
   else
     err "Neither curl nor wget is available. Please install one and retry."
   fi
+  printf '%s\n' "$version" > "$VERSION_FILE"
 
   echo "$BACKUP_MSG"
   if [[ -f "$BASHRC" ]]; then
