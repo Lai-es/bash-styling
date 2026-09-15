@@ -241,7 +241,7 @@ print_step_time() { #wrapper for time since last step
 
 alias ..='cd ..'
 alias ...='cd ../..'
-if [[ ${EZA_AVAILABLE:-false} == true]]; then
+if [[ ${EZA_AVAILABLE:-false} == true ]]; then
     alias ls='eza -lh --no-quotes --group-directories-first'
 else
     alias ls='ls -lh --group-directories-first --color=auto'
