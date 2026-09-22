@@ -58,7 +58,7 @@ update_library() {
 
 # find available and not available packages
 detect_installed_packages() {
-    local package command_name variable_name missing_packages="" package_list answer
+    local package command_name variable_name missing_packages="" package_list answer command_not_found_missing=false
 
     if [[ ${1:-} == '-q' || ${1:-} == '--quiet' ]]; then
         return 0
@@ -78,8 +78,15 @@ detect_installed_packages() {
     done
 
     if [[ -n "$missing_packages" ]]; then
-        log_banner "Missing packages:${missing_packages} | Install them and reload your shell"
-        read -r -p 'Would you like to install the missing packages? [y/N] ' answer
+        log_banner "Missing packages:${missing_packages}"
+
+        if [[ ! -f /etc/bash.command-not-found ]] && command -v wget >/dev/null 2>&1; then
+            command_not_found_missing=true
+            read -r -p 'Would you like to install the missing packages and optional command-not-found helper? [y/N] ' answer
+        else
+            read -r -p 'Would you like to install the missing packages? [y/N] ' answer
+        fi
+
         if [[ ! "$answer" =~ ^[Yy]([Ee][Ss])?$ ]]; then
             return 0
         fi
@@ -87,17 +94,53 @@ detect_installed_packages() {
         package_list="${missing_packages%,}"
         package_list="${package_list//, / }"
         if command -v apt-get >/dev/null 2>&1; then
-            sudo apt-get update && sudo apt-get install -y $package_list
+            sudo apt-get update || return 1
+            for package in $package_list; do
+                install_package apt-get "$package" || return 1
+            done
         elif command -v dnf >/dev/null 2>&1; then
-            sudo dnf install -y $package_list
+            for package in $package_list; do
+                install_package dnf "$package" || return 1
+            done
         elif command -v pacman >/dev/null 2>&1; then
-            sudo pacman -S --needed --noconfirm $package_list
+            for package in $package_list; do
+                install_package pacman "$package" || return 1
+            done
         elif command -v brew >/dev/null 2>&1; then
-            brew install $package_list
+            for package in $package_list; do
+                install_package brew "$package" || return 1
+            done
         else
             printf 'No supported package manager found.\n' >&2
+            if [[ "$command_not_found_missing" != true ]]; then
+                return 1
+            fi
+        fi
+
+        if [[ "$command_not_found_missing" == true ]]; then
+            printf 'Installing package: command-not-found\n'
+            sudo wget -O /etc/bash.command-not-found https://raw.githubusercontent.com/hkbakke/bash-insulter/master/src/bash.command-not-found || return 1
+            if command -v apt-get >/dev/null 2>&1 || command -v dnf >/dev/null 2>&1 || command -v pacman >/dev/null 2>&1 || command -v brew >/dev/null 2>&1; then
+                success_banner 'All missing packages installed successfully'
+            else
+                success_banner 'Optional command-not-found helper installed successfully'
+            fi
+        else
+            success_banner 'All missing packages installed successfully'
         fi
     fi
+}
+
+install_package() {
+    local package_manager=$1 package=$2
+
+    printf 'Installing package: %s\n' "$package"
+    case "$package_manager" in
+        apt-get) sudo apt-get install -y "$package" ;;
+        dnf) sudo dnf install -y "$package" ;;
+        pacman) sudo pacman -S --needed --noconfirm "$package" ;;
+        brew) brew install "$package" ;;
+    esac
 }
 
 # ====================== Banners ==========================================
@@ -254,6 +297,12 @@ alias cl='clear; echo; ls'
 alias lsa='ls -a'
 alias lc='wc -l'
 
+# ============================ Shell prompt =========================
+
+PROMPT_DIRTRIM=2
+PS1='\u@\h:\w\$ '
+# Output: user@host:~/.../current/dir $
+
 # ============================ colored Cow-fortune ===================
 
 fortune_cow_colored() {
@@ -308,4 +357,8 @@ if [[ ${FORTUNE_AVAILABLE:-false} == true && ${COWSAY_AVAILABLE:-false} == true 
     else 
         fortune -nsa | cowsay -f "$(cowsay -l | sort -R | head -1)" -n
     fi
+fi
+
+if [[ -f /etc/bash.command-not-found ]]; then
+    . /etc/bash.command-not-found
 fi

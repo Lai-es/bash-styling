@@ -1,6 +1,6 @@
 # bash-styling
 
-Shell startup styling, banners, package checks, aliases, and simple timing
+Comprehensive shell startup styling, banners, package checks, aliases, and simple timing
 helpers for Bash. External packages are used and have smart defaults in their absence.
 
 ## Installation
@@ -32,7 +32,7 @@ curl -fsSL https://raw.githubusercontent.com/Lai-es/bash-styling/main/install.sh
 The installer creates timestamped `.bashrc` backups before changing the file.
 It supports either `curl` or `wget` for downloads.
 
-## Dependencies
+## Dependencies/Downloads
 
 The startup package check looks for these commands:
 
@@ -56,6 +56,13 @@ cow's speech bubble with colored message text. Otherwise, it falls back to a
 plain `fortune` and `cowsay` pipeline, if present.
 
 It scans for updates of this package periodically.
+
+### Command-not-found
+
+When `wget` is available and `/etc/bash.command-not-found` does not exist, the
+missing-packages prompt on startup also offers to install the command-not-found package
+from [hkbakke/bash-insulter](https://github.com/hkbakke/bash-insulter). The
+package is sourced when it is available.
 
 ### Banners
 

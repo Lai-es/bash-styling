@@ -110,6 +110,8 @@ make_mock_command fortune 'printf test-fortune'
 make_mock_command cowsay 'printf test-cowsay'
 make_mock_command eza 'printf test-eza'
 make_passthrough_command zoxide
+make_mock_command sudo
+make_mock_command wget
 cat > "$MOCK_BIN/tput" <<EOF
 #!/usr/bin/env bash
 printf 'tput %s\\n' "\$*" >> "$MOCK_LOG"
@@ -177,11 +179,51 @@ HOME="$MOCK_HOME" PATH="$MOCK_BIN:$PATH" bash -c '
     detect_installed_packages
 ' bash "$LIBRARY" <<< n > "$MISSING_OUTPUT"
 assert_contains 'missing package banner is displayed' 'banner:Missing packages: figlet, fortune, cowsay, eza,' "$MISSING_OUTPUT"
+if ! grep -qF 'wget -O /etc/bash.command-not-found' "$MOCK_LOG"; then
+    pass 'declining missing packages also declines the optional helper download'
+else
+    fail 'declining missing packages also declines the optional helper download'
+fi
 if ! grep -qE 'lolcat|boxes|tput' "$MISSING_OUTPUT"; then
     pass 'missing package banner excludes available packages'
 else
     fail 'missing package banner excludes available packages'
 fi
+
+HOME="$MOCK_HOME" PATH="$MOCK_BIN:$PATH" bash -c '
+    source "$1" >/dev/null 2>&1
+    command() {
+        [[ "$2" == lolcat || "$2" == boxes || "$2" == tput || "$2" == wget ]]
+    }
+    log_banner() { printf "banner:%s\\n" "$*"; }
+    detect_installed_packages
+' bash "$LIBRARY" <<< y > /dev/null
+assert_contains 'accepting missing packages offers the optional helper download' 'wget -O /etc/bash.command-not-found' "$MOCK_LOG"
+
+INSTALL_OUTPUT="$TMP_DIR/package-install.out"
+HOME="$MOCK_HOME" PATH="$MOCK_BIN:$PATH" bash -c '
+    source "$1" >/dev/null 2>&1
+    command() {
+        [[ "$2" == lolcat || "$2" == boxes || "$2" == tput || "$2" == wget || "$2" == apt-get ]]
+    }
+    success_banner() { printf "success:%s\\n" "$*"; }
+    detect_installed_packages
+' bash "$LIBRARY" <<< y > "$INSTALL_OUTPUT"
+assert_contains 'package installation reports each package' 'Installing package: figlet' "$INSTALL_OUTPUT"
+assert_contains 'successful package installation shows a success banner' 'success:All missing packages installed successfully' "$INSTALL_OUTPUT"
+
+NO_MANAGER_OUTPUT="$TMP_DIR/no-package-manager.out"
+HOME="$MOCK_HOME" PATH="$MOCK_BIN:$PATH" bash -c '
+    source "$1" >/dev/null 2>&1
+    command() {
+        [[ "$2" == lolcat || "$2" == boxes || "$2" == tput || "$2" == wget ]]
+    }
+    log_banner() { printf "banner:%s\n" "$*"; }
+    success_banner() { printf "success:%s\n" "$*"; }
+    detect_installed_packages
+' bash "$LIBRARY" <<< y > "$NO_MANAGER_OUTPUT" 2>&1
+assert_contains 'optional helper installs without a package manager' 'Installing optional package: command-not-found' "$NO_MANAGER_OUTPUT"
+assert_contains 'helper-only installation shows a distinct success banner' 'success:Optional command-not-found helper installed successfully' "$NO_MANAGER_OUTPUT"
 
 section 'Library update check'
 UPDATE_OUTPUT="$TMP_DIR/update-check.out"
