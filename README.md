@@ -1,7 +1,7 @@
 # bash-styling
 
 Comprehensive shell startup styling, banners, package checks, aliases, and simple timing
-helpers for Bash. External packages are used and have smart defaults in their absence.
+helpers for Bash that are sourced via your .bashrc. External packages are used and have smart defaults in their absence.
 
 ## Installation
 
@@ -49,13 +49,11 @@ To skip the startup package checks, source the library with `-q` or `--quiet`:
 
 ### Startup behavior
 
-On startup, the library checks and offers to install
+On every tenth startup, the library checks and offers to install
 missing packages when a supported package manager is available. When `fortune`,
 `cowsay`, and `lolcat` are installed, it prints a random fortune in a random
 cow's speech bubble with colored message text. Otherwise, it falls back to a
 plain `fortune` and `cowsay` pipeline, if present.
-
-It scans for updates of this package periodically.
 
 ### Command-not-found
 

@@ -1,3 +1,6 @@
+# If not running interactively, don't do anything
+[[ $- != *i* ]] && return
+
 # COLORS
 BLUE='\033[1;34m'
 RED='\033[0;31m'
@@ -11,50 +14,7 @@ SCRIPTNAME=$(basename "$0")
 
 BASH_STYLING_REPO="${BASH_STYLING_REPO:-Lai-es/bash-styling}"
 BASH_STYLING_INSTALL_DIR="${BASH_STYLING_INSTALL_DIR:-$HOME/.local/share/bash-styling}"
-BASH_STYLING_VERSION_FILE="$BASH_STYLING_INSTALL_DIR/VERSION"
 BASH_STYLING_STARTUP_COUNT_FILE="$BASH_STYLING_INSTALL_DIR/startup-count"
-
-# pull latest github repo version
-get_latest_version() {
-    local url final_url version
-    url="https://github.com/${BASH_STYLING_REPO}/releases/latest"
-
-    if command -v curl >/dev/null 2>&1; then
-        final_url="$(curl -sSfIL -o /dev/null -w '%{url_effective}' "$url" 2>/dev/null || true)"
-    elif command -v wget >/dev/null 2>&1; then
-        final_url="$(wget --max-redirect=0 --server-response -O /dev/null "$url" 2>&1 | grep -i 'location:' | head -1 || true)"
-    else
-        return 1
-    fi
-
-    version="$(printf '%s' "$final_url" | sed 's|.*/||' | cut -d' ' -f1 | tr -d '\r\n')"
-    [[ -n "$version" ]] && printf '%s\n' "$version"
-}
-
-# scan for updates on the github repo
-update_library() {
-    local startup_count current_version latest_version update_command
-
-    if [[ ${1:-} == '-q' || ${1:-} == '--quiet' ]]; then
-        return 0
-    fi
-
-    mkdir -p "$BASH_STYLING_INSTALL_DIR" 2>/dev/null || return 0
-    startup_count="$(cat "$BASH_STYLING_STARTUP_COUNT_FILE" 2>/dev/null || printf '0')"
-    [[ "$startup_count" =~ ^[0-9]+$ ]] || startup_count=0
-    startup_count=$((startup_count + 1))
-    printf '%s\n' "$startup_count" > "$BASH_STYLING_STARTUP_COUNT_FILE" || return 0
-    (( startup_count % 10 == 0 )) || return 0
-
-    current_version="$(cat "$BASH_STYLING_VERSION_FILE" 2>/dev/null || true)"
-    [[ -n "$current_version" ]] || return 0
-    latest_version="$(get_latest_version 2>/dev/null || true)"
-    [[ -n "$latest_version" && "$latest_version" != "$current_version" ]] || return 0
-
-    update_command="curl -fsSL https://raw.githubusercontent.com/${BASH_STYLING_REPO}/main/install.sh | bash"
-    
-    log_banner "bash-styling update available: ${latest_version} (installed: ${current_version}). Run: ${update_command}\n"
-}
 
 # find available and not available packages
 detect_installed_packages() {
@@ -141,6 +101,23 @@ install_package() {
         pacman) sudo pacman -S --needed --noconfirm "$package" ;;
         brew) brew install "$package" ;;
     esac
+}
+
+startup_package_check() {
+    local startup_count
+
+    if [[ ${1:-} == '-q' || ${1:-} == '--quiet' ]]; then
+        return 0
+    fi
+
+    mkdir -p "$BASH_STYLING_INSTALL_DIR" 2>/dev/null || return 0
+    startup_count="$(cat "$BASH_STYLING_STARTUP_COUNT_FILE" 2>/dev/null || printf '0')"
+    [[ "$startup_count" =~ ^[0-9]+$ ]] || startup_count=0
+    startup_count=$((startup_count + 1))
+    printf '%s\n' "$startup_count" > "$BASH_STYLING_STARTUP_COUNT_FILE" || return 0
+
+    (( startup_count % 10 == 0 )) || return 0
+    detect_installed_packages
 }
 
 # ====================== Banners ==========================================
@@ -300,8 +277,13 @@ alias lc='wc -l'
 # ============================ Shell prompt =========================
 
 PROMPT_DIRTRIM=2
-PS1='\u@\h:\w\$ '
-# Output: user@host:~/.../current/dir $
+PS1='\u@\h:\w\$ ' # Output: user@host:~/.../current/dir $
+
+
+# save bash commands entered in tmux sessions
+export HISTCONTROL=ignoredups:erasedups # avoid duplicates..
+shopt -s histappend # append history entries..
+export PROMPT_COMMAND="history -a; history -c; history -r; $PROMPT_COMMAND" # After each command, save and reload history
 
 # ============================ colored Cow-fortune ===================
 
@@ -347,9 +329,7 @@ fortune_cow_colored() {
 
 # ========================= Shell startup ==========================
 
-# On each startup, check the required packages
-detect_installed_packages "$@"
-update_library "$@"
+startup_package_check "$@"
 
 if [[ ${FORTUNE_AVAILABLE:-false} == true && ${COWSAY_AVAILABLE:-false} == true ]]; then
     if [[ ${LOLCAT_AVAILABLE:-false} == true ]]; then

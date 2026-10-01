@@ -130,11 +130,9 @@ section 'Installer install'
 HOME="$MOCK_HOME" PATH="$MOCK_BIN:$PATH" bash "$INSTALLER" install > "$TMP_DIR/install.out"
 assert_file 'installer downloads functions library' "$MOCK_HOME/.local/share/bash-styling/functions.sh"
 assert_file 'installer downloads success box design' "$MOCK_HOME/.local/share/bash-styling/success-box"
-assert_file 'installer records the release version' "$MOCK_HOME/.local/share/bash-styling/VERSION"
 assert_contains 'installer adds managed source block' '# >>> bash-styling >>>' "$MOCK_HOME/.bashrc"
-assert_contains 'installer uses the release version' 'version: v-test' "$MOCK_HOME/.bashrc"
+assert_contains 'installer uses the release version' '# GitHub-repo: Lai-es/bash-styling v-test' "$MOCK_HOME/.bashrc"
 assert_contains 'installer points to downloaded library' 'source "/' "$MOCK_HOME/.bashrc"
-assert_contains 'installer writes the downloaded release version' 'v-test' "$MOCK_HOME/.local/share/bash-styling/VERSION"
 
 section 'Installer update'
 HOME="$MOCK_HOME" PATH="$MOCK_BIN:$PATH" bash "$INSTALLER" install > "$TMP_DIR/update.out"
@@ -162,12 +160,24 @@ fi
 
 section 'Library startup and package detection'
 LIB_OUTPUT="$TMP_DIR/library.out"
+mkdir -p "$MOCK_HOME/.local/share/bash-styling"
+printf '8\n' > "$MOCK_HOME/.local/share/bash-styling/startup-count"
 HOME="$MOCK_HOME" PATH="$MOCK_BIN:$PATH" bash -c 'source "$1"' bash "$LIBRARY" > "$LIB_OUTPUT" 2>&1
 if ! grep -qE 'Missing packages:|All required packages are available|lolcat   true' "$LIB_OUTPUT"; then
-    pass 'startup is silent when all required packages are available'
+    pass 'startup stays silent before the tenth startup'
 else
-    fail 'startup is silent when all required packages are available'
+    fail 'startup stays silent before the tenth startup'
 fi
+assert_contains 'startup counter advances' '9' "$MOCK_HOME/.local/share/bash-styling/startup-count"
+
+printf '9\n' > "$MOCK_HOME/.local/share/bash-styling/startup-count"
+HOME="$MOCK_HOME" PATH="$MOCK_BIN:$PATH" bash -c 'source "$1"' bash "$LIBRARY" > "$LIB_OUTPUT" 2>&1
+if ! grep -qE 'Missing packages:|All required packages are available|lolcat   true' "$LIB_OUTPUT"; then
+    pass 'tenth startup package detection remains quiet when packages are available'
+else
+    fail 'tenth startup package detection remains quiet when packages are available'
+fi
+assert_contains 'tenth startup is recorded' '10' "$MOCK_HOME/.local/share/bash-styling/startup-count"
 
 MISSING_OUTPUT="$TMP_DIR/missing-packages.out"
 HOME="$MOCK_HOME" PATH="$MOCK_BIN:$PATH" bash -c '
@@ -224,22 +234,6 @@ HOME="$MOCK_HOME" PATH="$MOCK_BIN:$PATH" bash -c '
 ' bash "$LIBRARY" <<< y > "$NO_MANAGER_OUTPUT" 2>&1
 assert_contains 'optional helper installs without a package manager' 'Installing optional package: command-not-found' "$NO_MANAGER_OUTPUT"
 assert_contains 'helper-only installation shows a distinct success banner' 'success:Optional command-not-found helper installed successfully' "$NO_MANAGER_OUTPUT"
-
-section 'Library update check'
-UPDATE_OUTPUT="$TMP_DIR/update-check.out"
-printf '9\n' > "$MOCK_HOME/.local/share/bash-styling/startup-count"
-HOME="$MOCK_HOME" PATH="$MOCK_BIN:$PATH" bash -c 'source "$1" --quiet; update_library' bash "$LIBRARY" > "$UPDATE_OUTPUT"
-assert_contains 'update check prompts when a new release is found' 'bash-styling update available: v-test' "$UPDATE_OUTPUT"
-assert_contains 'update check shows the installer command' 'raw.githubusercontent.com/Lai-es/bash-styling/main/install.sh | bash' "$UPDATE_OUTPUT"
-
-UPDATE_OUTPUT="$TMP_DIR/update-check-silent.out"
-printf '10\n' > "$MOCK_HOME/.local/share/bash-styling/startup-count"
-HOME="$MOCK_HOME" PATH="$MOCK_BIN:$PATH" bash -c 'source "$1" --quiet; update_library' bash "$LIBRARY" > "$UPDATE_OUTPUT"
-if [[ ! -s "$UPDATE_OUTPUT" ]]; then
-    pass 'update check is silent between tenth startups'
-else
-    fail 'update check is silent between tenth startups'
-fi
 
 QUIET_OUTPUT="$TMP_DIR/quiet-package-check.out"
 HOME="$MOCK_HOME" PATH="$MOCK_BIN:$PATH" bash -c '
