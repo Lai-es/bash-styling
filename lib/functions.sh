@@ -16,6 +16,17 @@ BASH_STYLING_REPO="${BASH_STYLING_REPO:-Lai-es/bash-styling}"
 BASH_STYLING_INSTALL_DIR="${BASH_STYLING_INSTALL_DIR:-$HOME/.local/share/bash-styling}"
 BASH_STYLING_STARTUP_COUNT_FILE="$BASH_STYLING_INSTALL_DIR/startup-count"
 
+has_source_option() {
+    local option argument
+
+    option=$1
+    shift
+    for argument in "$@"; do
+        [[ "$argument" == "$option" ]] && return 0
+    done
+    return 1
+}
+
 search_installed_packages() {
     local package command_name variable_name
 
@@ -35,11 +46,9 @@ search_installed_packages() {
 install_missing_packages() {
     local package variable_name missing_packages="" package_list answer command_not_found_missing=false
 
-    if [[ ${1:-} == '-q' || ${1:-} == '--quiet' ]]; then
+    if has_source_option '-q' "$@" || has_source_option '--quiet' "$@"; then
         return 0
     fi
-
-    search_installed_packages
 
     for package in lolcat figlet boxes fortune cowsay eza tput zoxide; do
         variable_name="${package^^}_AVAILABLE"
@@ -118,7 +127,7 @@ install_package() {
 startup_package_check() {
     local startup_count
 
-    if [[ ${1:-} == '-q' || ${1:-} == '--quiet' ]]; then
+    if has_source_option '-q' "$@" || has_source_option '--quiet' "$@"; then
         return 0
     fi
 
@@ -127,8 +136,6 @@ startup_package_check() {
     [[ "$startup_count" =~ ^[0-9]+$ ]] || startup_count=0
     startup_count=$((startup_count + 1))
     printf '%s\n' "$startup_count" > "$BASH_STYLING_STARTUP_COUNT_FILE" || return 0
-
-    search_installed_packages
 
     (( startup_count % 10 == 0 )) || return 0
     install_missing_packages
@@ -346,9 +353,11 @@ fortune_cow_colored() {
 
 # ========================= Shell startup ==========================
 
+search_installed_packages
 startup_package_check "$@"
 
-if [[ ${FORTUNE_AVAILABLE:-false} == true && ${COWSAY_AVAILABLE:-false} == true ]]; then
+if ! has_source_option '--no-cow' "$@" &&
+    [[ ${FORTUNE_AVAILABLE:-false} == true && ${COWSAY_AVAILABLE:-false} == true ]]; then
     if [[ ${LOLCAT_AVAILABLE:-false} == true ]]; then
         fortune_cow_colored
     else 

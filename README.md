@@ -41,9 +41,15 @@ The startup package check looks for these commands:
 Missing commands are reported when Bash starts, along with a hint to install
 the unavailable packages.
 
-To skip the startup package checks, source the library with `-q` or `--quiet`:
+To skip the startup package checks, source the library with `-q` or
+`--quiet`:
 
 `source "$HOME/.local/share/bash-styling/functions.sh" --quiet`
+
+The fortune cow still displays in quiet mode. To skip it, source the library
+with `--no-cow`:
+
+`source "$HOME/.local/share/bash-styling/functions.sh" --no-cow`
 
 ## Functions
 
