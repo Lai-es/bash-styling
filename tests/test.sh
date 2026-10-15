@@ -186,7 +186,7 @@ HOME="$MOCK_HOME" PATH="$MOCK_BIN:$PATH" bash -c '
         [[ "$2" == lolcat || "$2" == boxes || "$2" == tput ]]
     }
     log_banner() { printf "banner:%s\\n" "$*"; }
-    detect_installed_packages
+    install_missing_packages
 ' bash "$LIBRARY" <<< n > "$MISSING_OUTPUT"
 assert_contains 'missing package banner is displayed' 'banner:Missing packages: figlet, fortune, cowsay, eza,' "$MISSING_OUTPUT"
 if ! grep -qF 'wget -O /etc/bash.command-not-found' "$MOCK_LOG"; then
@@ -206,7 +206,7 @@ HOME="$MOCK_HOME" PATH="$MOCK_BIN:$PATH" bash -c '
         [[ "$2" == lolcat || "$2" == boxes || "$2" == tput || "$2" == wget ]]
     }
     log_banner() { printf "banner:%s\\n" "$*"; }
-    detect_installed_packages
+    install_missing_packages
 ' bash "$LIBRARY" <<< y > /dev/null
 assert_contains 'accepting missing packages offers the optional helper download' 'wget -O /etc/bash.command-not-found' "$MOCK_LOG"
 
@@ -217,7 +217,7 @@ HOME="$MOCK_HOME" PATH="$MOCK_BIN:$PATH" bash -c '
         [[ "$2" == lolcat || "$2" == boxes || "$2" == tput || "$2" == wget || "$2" == apt-get ]]
     }
     success_banner() { printf "success:%s\\n" "$*"; }
-    detect_installed_packages
+    install_missing_packages
 ' bash "$LIBRARY" <<< y > "$INSTALL_OUTPUT"
 assert_contains 'package installation reports each package' 'Installing package: figlet' "$INSTALL_OUTPUT"
 assert_contains 'successful package installation shows a success banner' 'success:All missing packages installed successfully' "$INSTALL_OUTPUT"
@@ -230,7 +230,7 @@ HOME="$MOCK_HOME" PATH="$MOCK_BIN:$PATH" bash -c '
     }
     log_banner() { printf "banner:%s\n" "$*"; }
     success_banner() { printf "success:%s\n" "$*"; }
-    detect_installed_packages
+    install_missing_packages
 ' bash "$LIBRARY" <<< y > "$NO_MANAGER_OUTPUT" 2>&1
 assert_contains 'optional helper installs without a package manager' 'Installing optional package: command-not-found' "$NO_MANAGER_OUTPUT"
 assert_contains 'helper-only installation shows a distinct success banner' 'success:Optional command-not-found helper installed successfully' "$NO_MANAGER_OUTPUT"
@@ -251,7 +251,7 @@ HOME="$MOCK_HOME" PATH="$MOCK_BIN:$PATH" bash -c '
     source "$1" >/dev/null 2>&1
     command() { return 1; }
     log_banner() { printf "banner:%s\\n" "$*"; }
-    detect_installed_packages --quiet
+    install_missing_packages --quiet
 ' bash "$LIBRARY" > "$QUIET_OUTPUT"
 if [[ ! -s "$QUIET_OUTPUT" ]]; then
     pass 'quiet package check skips detection and output'

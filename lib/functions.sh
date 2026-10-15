@@ -16,13 +16,8 @@ BASH_STYLING_REPO="${BASH_STYLING_REPO:-Lai-es/bash-styling}"
 BASH_STYLING_INSTALL_DIR="${BASH_STYLING_INSTALL_DIR:-$HOME/.local/share/bash-styling}"
 BASH_STYLING_STARTUP_COUNT_FILE="$BASH_STYLING_INSTALL_DIR/startup-count"
 
-# find available and not available packages
-detect_installed_packages() {
-    local package command_name variable_name missing_packages="" package_list answer command_not_found_missing=false
-
-    if [[ ${1:-} == '-q' || ${1:-} == '--quiet' ]]; then
-        return 0
-    fi
+search_installed_packages() {
+    local package command_name variable_name
 
     for package in lolcat figlet boxes fortune cowsay eza tput zoxide; do
         command_name="$package"
@@ -32,9 +27,26 @@ detect_installed_packages() {
             printf -v "$variable_name" '%s' true
         else
             printf -v "$variable_name" '%s' false
+        fi
+    done
+}
+
+# find available and not available packages, then offer to install missing ones
+install_missing_packages() {
+    local package variable_name missing_packages="" package_list answer command_not_found_missing=false
+
+    if [[ ${1:-} == '-q' || ${1:-} == '--quiet' ]]; then
+        return 0
+    fi
+
+    search_installed_packages
+
+    for package in lolcat figlet boxes fortune cowsay eza tput zoxide; do
+        variable_name="${package^^}_AVAILABLE"
+
+        if [[ ${!variable_name} != true ]]; then
             missing_packages+=" $package,"
         fi
-
     done
 
     if [[ -n "$missing_packages" ]]; then
@@ -116,8 +128,10 @@ startup_package_check() {
     startup_count=$((startup_count + 1))
     printf '%s\n' "$startup_count" > "$BASH_STYLING_STARTUP_COUNT_FILE" || return 0
 
+    search_installed_packages
+
     (( startup_count % 10 == 0 )) || return 0
-    detect_installed_packages
+    install_missing_packages
 }
 
 # ====================== Banners ==========================================
@@ -272,7 +286,7 @@ if [[ ${FIGLET_AVAILABLE:-false} == true && ${LOLCAT_AVAILABLE:-false} == true ]
 fi
 alias cl='clear; echo; ls'
 alias lsa='ls -a'
-alias lc='wc -l'
+alias lc='wc -l' #Line Count
 
 # ============================ Shell prompt =========================
 
@@ -280,12 +294,15 @@ PROMPT_DIRTRIM=2
 PS1='\u@\h:\w\$ ' # Output: user@host:~/.../current/dir $
 
 
-# save bash commands entered in tmux sessions
+# ------------- save bash commands entered in tmux sessions
 export HISTCONTROL=ignoredups:erasedups # avoid duplicates..
 shopt -s histappend # append history entries..
 export PROMPT_COMMAND="history -a; history -c; history -r; $PROMPT_COMMAND" # After each command, save and reload history
 
-# ============================ colored Cow-fortune ===================
+# ------------- enable hashing
+set -h
+
+# ============================ Colored Cow-fortune ===================
 
 fortune_cow_colored() {
     local cow output bottom=-1 colored line left right
@@ -339,6 +356,7 @@ if [[ ${FORTUNE_AVAILABLE:-false} == true && ${COWSAY_AVAILABLE:-false} == true 
     fi
 fi
 
+#activate user mocking
 if [[ -f /etc/bash.command-not-found ]]; then
     . /etc/bash.command-not-found
 fi
