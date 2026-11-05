@@ -281,7 +281,7 @@ else
     alias ls='ls -lhX --group-directories-first --color=auto'
 fi
 cdl() { cd "$@"; ls; } #ls immediatly after changing directory
-alias .='echo $PWD'
+alias pwd='echo $PWD'
 alias ..='cdl ..'
 alias ...='cdl ../..'
 alias sl='ls'
@@ -291,6 +291,7 @@ fi
 alias cl='clear; echo; ls'
 alias lsa='ls -A'
 alias lc='wc -l' #Line Count
+alias fc='ls | lc' #file count
 alias c='clear'
 alias mv='mv -vi' #verbose move, prompt to overwrite
 alias cp='cp -vi' #verbose copy, prompt to overwrite

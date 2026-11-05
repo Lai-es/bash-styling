@@ -90,21 +90,23 @@ without the optional `boxes` package.
 
 ### Aliases and helpers
 
-Alias   | Name origin               | Usage                                                                                                                          
-------- | ------------------------- | -------------------------------------------------------------------------------------------------------------------------------
+Alias   | Name origin               | Usage         
+------- | ------------------------- | -----------------
 `ls`    | List directory contents   | Lists files in a long, human-readable format, grouping directories first. Uses `eza` when available and falls back to GNU `ls`.
-`.`     | Current directory         | Prints the path of the current directory.                                                                                      
-`..`    | Parent directory          | Changes to the parent directory and lists its contents.                                                                        
-`...`   | Two parent directories up | Changes two levels up and lists the contents.                                                                                  
-`sl`    | Typo-resistant `ls`       | Runs `ls`.                                                                                                                     
-`clear` | Clear the terminal        | Clears the terminal; when `figlet` and `lolcat` are available, also prints "Clear!" with styling.                              
-`cl`    | Clear and list            | Clears the terminal, adds a blank line, and lists the current directory.                                                       
-`lsa`   | List all                  | Lists all files, including hidden files except `.` and `..`.                                                                   
-`lc`    | Line count                | Counts lines from files or standard input.                                                                                     
-`c`     | Clear                     | Clears the terminal.                                                                                                           
-`mv`    | Move                      | Runs `mv` in verbose mode and prompts before overwriting.                                                                      
-`cp`    | Copy                      | Runs `cp` in verbose mode and prompts before overwriting.                                                                      
-`cdl`   | cd and ls                 | Changes to the specified directory and lists its contents.                                                                     
+`pwd`     | Print working directory         | Prints the path of the current directory.
+`..`    | Parent directory          | Changes to the parent directory and lists its contents.
+`...`   | Two parent directories up | Changes two levels up and lists the contents.
+`sl`    | Typo-resistant `ls`       | Runs `ls`.
+`clear` | Clear the terminal        | Clears the terminal; when `figlet` and `lolcat` are available, also prints "Clear!" with styling. 
+`cl`    | Clear and list            | Clears the terminal, adds a blank line, and lists the current directory.
+`lsa`   | List all                  | Lists all files, including hidden files except `.` and `..`.
+`lc`    | Line count                | Counts lines from files or standard input.    
+`fc`	| File count				| Counts files in the current directory
+`c`     | Clear                     | Clears the terminal.
+`mv`    | Move                      | Runs `mv` in verbose mode and prompts before overwriting.    
+`cp`    | Copy                      | Runs `cp` in verbose mode and prompts before overwriting.    
+`cdl`   | cd and ls                 | Changes to the specified directory and lists its contents.                                                                         
+    
 
 ## Testing
 
