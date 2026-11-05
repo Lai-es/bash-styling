@@ -11,7 +11,6 @@ RESET_COLOR='\033[0m'
 SCRIPTNAME=$(basename "$0")
 
 # =========================== Update packages ======================================
-
 BASH_STYLING_REPO="${BASH_STYLING_REPO:-Lai-es/bash-styling}"
 BASH_STYLING_INSTALL_DIR="${BASH_STYLING_INSTALL_DIR:-$HOME/.local/share/bash-styling}"
 BASH_STYLING_STARTUP_COUNT_FILE="$BASH_STYLING_INSTALL_DIR/startup-count"
@@ -142,7 +141,6 @@ startup_package_check() {
 }
 
 # ====================== Banners ==========================================
-
 success_banner() {
     if [[ ${BOXES_AVAILABLE:-false} == true ]]; then
         printf '%s\n' "$*" | center_box | boxes_design -d success
@@ -188,7 +186,6 @@ log_banner() {
 }
 
 # -------------------- banner helpers ------------------------------
-
 center_box() {
   local data="$(</dev/stdin)"  # Read from standard input
   # Banner Width
@@ -219,7 +216,6 @@ center_text() {
 }
 
 # ========================== Timers =================================
-
 SCRIPT_START=$(date +%s)
 SCRIPT_STARTED=false
 STEP_START=$SCRIPT_START
@@ -279,38 +275,36 @@ print_step_time() { #wrapper for time since last step
 }
 
 # ========================== Aliases ================================
-
-alias ..='cd ..'
-alias ...='cd ../..'
 if [[ ${EZA_AVAILABLE:-false} == true ]]; then
     alias ls='eza -lh --no-quotes --group-directories-first'
 else
-    alias ls='ls -lh --group-directories-first --color=auto'
+    alias ls='ls -lhX --group-directories-first --color=auto'
 fi
+cdl() { cd "$@"; ls; } #ls immediatly after changing directory
+alias .='echo $PWD'
+alias ..='cdl ..'
+alias ...='cdl ../..'
 alias sl='ls'
 if [[ ${FIGLET_AVAILABLE:-false} == true && ${LOLCAT_AVAILABLE:-false} == true ]]; then
-    alias clear="clear; figlet Let\'s go! | lolcat"
+    alias clear="clear; figlet Clear! | lolcat"
 fi
 alias cl='clear; echo; ls'
-alias lsa='ls -a'
+alias lsa='ls -A'
 alias lc='wc -l' #Line Count
+alias c='clear'
+alias mv='mv -vi' #verbose move, prompt to overwrite
+alias cp='cp -vi' #verbose copy, prompt to overwrite
 
 # ============================ Shell prompt =========================
-
 PROMPT_DIRTRIM=2
 PS1='\u@\h:\w\$ ' # Output: user@host:~/.../current/dir $
-
 
 # ------------- save bash commands entered in tmux sessions
 export HISTCONTROL=ignoredups:erasedups # avoid duplicates..
 shopt -s histappend # append history entries..
 export PROMPT_COMMAND="history -a; history -c; history -r; $PROMPT_COMMAND" # After each command, save and reload history
 
-# ------------- enable hashing
-set -h
-
 # ============================ Colored Cow-fortune ===================
-
 fortune_cow_colored() {
     local cow output bottom=-1 colored line left right
     local -a lines colored_lines
@@ -352,6 +346,8 @@ fortune_cow_colored() {
 }
 
 # ========================= Shell startup ==========================
+# ------------- enable hashing
+set -h
 
 search_installed_packages
 startup_package_check "$@"

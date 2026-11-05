@@ -3,7 +3,7 @@
 Comprehensive shell startup styling, banners, package checks, aliases, and simple timing
 helpers for Bash that are sourced via your .bashrc. External packages are used and have smart defaults in their absence.
 
-## Installation
+## Installation/Update
 
 The installer downloads the current release files into
 `~/.local/share/bash-styling` and adds a managed source block to `~/.bashrc`:
@@ -90,9 +90,21 @@ without the optional `boxes` package.
 
 ### Aliases and helpers
 
-The library provides directory navigation aliases, an `eza`-based `ls` when
-available, a formatted `clear` when `figlet` and `lolcat` are available, and
-package-free fallbacks for both commands.
+Alias   | Name origin               | Usage                                                                                                                          
+------- | ------------------------- | -------------------------------------------------------------------------------------------------------------------------------
+`ls`    | List directory contents   | Lists files in a long, human-readable format, grouping directories first. Uses `eza` when available and falls back to GNU `ls`.
+`.`     | Current directory         | Prints the path of the current directory.                                                                                      
+`..`    | Parent directory          | Changes to the parent directory and lists its contents.                                                                        
+`...`   | Two parent directories up | Changes two levels up and lists the contents.                                                                                  
+`sl`    | Typo-resistant `ls`       | Runs `ls`.                                                                                                                     
+`clear` | Clear the terminal        | Clears the terminal; when `figlet` and `lolcat` are available, also prints "Clear!" with styling.                              
+`cl`    | Clear and list            | Clears the terminal, adds a blank line, and lists the current directory.                                                       
+`lsa`   | List all                  | Lists all files, including hidden files except `.` and `..`.                                                                   
+`lc`    | Line count                | Counts lines from files or standard input.                                                                                     
+`c`     | Clear                     | Clears the terminal.                                                                                                           
+`mv`    | Move                      | Runs `mv` in verbose mode and prompts before overwriting.                                                                      
+`cp`    | Copy                      | Runs `cp` in verbose mode and prompts before overwriting.                                                                      
+`cdl`   | cd and ls                 | Changes to the specified directory and lists its contents.                                                                     
 
 ## Testing
 
